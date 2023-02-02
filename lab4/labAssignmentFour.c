@@ -12,38 +12,19 @@ void* getFile(void*);
 
 void sigHandler(int);
 
-struct termios termios;
-
 int totalFileRequests;
 
 int main() {
-    pid_t pid;
-    if ((pid = fork()) < 0) {
-        perror("Fork failure");
-        exit(1);
-    }
-
-    if (pid == 0) {
-        char* tmp[] = {"stty", "-echoctl", NULL};
-        int status = execvp(tmp[0], tmp);
-        if (status < 0) {
-            perror("exec failed");
-            exit(1);
-        }
-        exit(0);
-    }
-
     signal (SIGINT, sigHandler);
     totalFileRequests = 0;
 
     do {
         // Wait for user input
         char input[63];
-        printf("Enter a file name: ");
+        printf("Enter a file name:\n");
         fgets(input, sizeof(input), stdin);
 
         // Create new thread with user input as param
-        // TODO: might kill the thread when we loop. If so, could create a queue
         pthread_t thread;
         int threadStatus = pthread_create(&thread, NULL, getFile, &input);
         if (threadStatus != 0) {
@@ -58,7 +39,11 @@ int main() {
 }
 
 void* getFile(void* myArgument) {
-    char *myPtr = (char *)myArgument;
+    // Create a copy of the file being accessed
+    char *filename = malloc(sizeof(char)*100);
+    strcpy(filename, (char*)myArgument);
+
+    // Seed random with current time
     srand(time(NULL));
 
     // false for 20%, true for 80%
@@ -71,27 +56,12 @@ void* getFile(void* myArgument) {
     }
 
     // print diagnostic message
-    printf("File accessed: %s\n", myPtr);
+    printf("File accessed: %s\n", filename);
     return NULL;
 }
 
 void sigHandler (int sigNum){
     // graceful exit
-    printf("Total File Requests Received: %d", totalFileRequests);
-    pid_t pid;
-    if ((pid = fork()) < 0) {
-        perror("Fork failure");
-        exit(1);
-    }
-
-    if (pid == 0) {
-        char* tmp[] = {"stty", "echoctl", "ON", NULL};
-        int status = execvp(tmp[0], tmp);
-        if (status < 0) {
-            perror("exec failed");
-            exit(1);
-        }
-        exit(0);
-    }
+    printf("Total File Requests Received: %d\n", totalFileRequests);
     exit(0);
 }
