@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void* doGreeting(void* arg);
+void* doGreeting(void*);
 
 // global (shared and specific) data
 int sharedData = 5;

@@ -20,3 +20,7 @@ add_executable(sampleProgramTwo ${SOURCE_FILES})
 project(sampleProgramThree)
 set(SOURCE_FILES sample_programs/sampleProgramThree.c)
 add_executable(sampleProgramThree ${SOURCE_FILES})
+
+project(test)
+set(SOURCE_FILES sample_programs/test.c)
+add_executable(test ${SOURCE_FILES})
