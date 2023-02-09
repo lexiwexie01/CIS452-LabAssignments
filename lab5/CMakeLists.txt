@@ -7,3 +7,6 @@ set(SOURCE_FILES labAssignmentFive.c)
 
 # Add executable target with source files listed in SOURCE_FILES variable
 add_executable(labAssignmentFive ${SOURCE_FILES})
+
+set(SOURCE_FILES ./sample_programs/sampleProgramOne.c)
+add_executable(sampleProgramOne ${SOURCE_FILES})

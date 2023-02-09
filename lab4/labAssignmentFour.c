@@ -21,7 +21,7 @@ int main() {
     do {
         // Wait for user input
         char input[63];
-        printf("Enter a file name:\n");
+        printf("Enter a file name: ");
         fgets(input, sizeof(input), stdin);
 
         // Create new thread with user input as param
@@ -60,7 +60,7 @@ void* getFile(void* myArgument) {
     return NULL;
 }
 
-void sigHandler (int sigNum){
+void sigHandler (int sigNum) {
     // graceful exit
     printf("Total File Requests Received: %d\n", totalFileRequests);
     exit(0);
