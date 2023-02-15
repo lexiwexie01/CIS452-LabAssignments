@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.13)  # CMake version check
-project(labAssignmentFive)               # Create project "simple_example"
 set(CMAKE_CXX_STANDARD 14)            # Enable c++14 standard
 
-# Add main.cpp file of project root directory as source file
+project(Reader)
 set(SOURCE_FILES reader.c)
+add_executable(Reader ${SOURCE_FILES})
 
-# Add executable target with source files listed in SOURCE_FILES variable
-add_executable(labAssignmentFive ${SOURCE_FILES})
+project(Writer)
+set(SOURCE_FILES writer.c)
+add_executable(Writer ${SOURCE_FILES})
 
-set(SOURCE_FILES ./sample_programs/sampleProgramOne.c)
-add_executable(sampleProgramOne ${SOURCE_FILES})
