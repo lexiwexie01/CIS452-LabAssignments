@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/errno.h>
 
 /*
  * The reader will create a key using ftok() on key.txt, just as the writer will do the same.
@@ -18,42 +19,30 @@
 
 int MEM_SIZE = 255;
 
+struct memStruct {
+    char data[255];
+};
+
 int sharedMemoryID;
 
-char* sharedMemoryPointer;
+struct memStruct* sharedMemoryPointer;
 
 void sigHandler(int);
 
 int main() {
 
-    // install interrupt handler
+    // install interrupt handlers
     signal(SIGINT, sigHandler);
+    signal(SIGTERM, sigHandler);
 
-    // Get sharedMemoryID of shared memory created by writer.c
-    key_t key = ftok(".writer.c", 0);
-    sharedMemoryID = shmget(key, MEM_SIZE, S_IWUSR|S_IRUSR|S_IRGRP|S_IWGRP|IPC_CREAT);
-    if (sharedMemoryID < 0) {
-        perror("Error setting shared memory");
-        exit(1);
-    }
-
-    // Attach memory
-    // TODO: might need a pointer to a char* instead of just char*
-    sharedMemoryPointer = shmat(sharedMemoryID, NULL, 0);
-    if (sharedMemoryPointer == NULL) {
-        perror("Error with attaching shared memory");
-        exit(1);
-    }
-
-    // Get struct shmid_ds with call to shmctl()
-    struct shmid_ds sharedMemoryDataStructure;
+    printf("ppid: %d\n\n", getpid());
 
     // Create two processes
     pid_t pid;
     for (int i = 0; i < 2; i++) {
         if ((pid = fork()) < 0) {
             perror("Forking process failed");
-            exit(1);
+            sigHandler(100);
         }
         // If child, then exit
         if (pid == 0) {
@@ -64,29 +53,104 @@ int main() {
 
     // Main loop for reading processes
     if (pid == 0) {
-        char data[MEM_SIZE];
+
+        // Display process' id
+        pid = getpid();
+        printf("pid: %d\n", pid);
+
+        // Get sharedMemoryID of shared memory created by writer.c
+        key_t key = ftok("key.txt", 1);
+        if (key < 0) {
+            perror("Failed creating key");
+            exit(1);
+        }
+
+        printf("key: %d\n", key);
+
+        sharedMemoryID = shmget(key, sizeof(struct memStruct), SHM_RDONLY);
+        if (sharedMemoryID < 0) {
+            perror("Error setting shared memory");
+            exit(1);
+        }
+
+        printf("shmid: %d\n", sharedMemoryID);
+
+        // Attach memory
+        sharedMemoryPointer = shmat(sharedMemoryID, 0, 0);
+        if (sharedMemoryPointer < 0) {
+            perror("Error with attaching shared memory");
+            sigHandler(100);
+        }
+
+        printf("shmptr: %p\n", sharedMemoryPointer);
+
+        // Get struct shmid_ds with call to shmctl()
+        struct shmid_ds* sharedMemoryDataStructure = malloc(sizeof(struct shmid_ds*));
+        if (sharedMemoryDataStructure == NULL) {
+            perror("Error with creating shared memory id data structure");
+            sigHandler(100);
+        }
+
+        if (shmctl(sharedMemoryID, IPC_STAT, sharedMemoryDataStructure) < 0) {
+            perror("Unable to access shared memory data structure");
+            sigHandler(100);
+            exit(1);
+        }
+
+        printf("cpid: %d\n", sharedMemoryDataStructure->shm_cpid);
+        printf("lpid: %d\n\n", sharedMemoryDataStructure->shm_lpid);
+
         while (1) {
             // Read memory only if shmid_ds says it was last updated by the creator (writer)
-            shmctl(sharedMemoryID, IPC_STAT, &sharedMemoryDataStructure);
-            if (sharedMemoryDataStructure.shm_lpid != sharedMemoryDataStructure.shm_cpid) {
+            if (shmctl(sharedMemoryID, IPC_STAT, sharedMemoryDataStructure) < 0) {
+                perror("Unable to access shared memory data structure");
+                sigHandler(100);
+                exit(1);
+            }
+
+            if (sharedMemoryDataStructure->shm_lpid == sharedMemoryDataStructure->shm_cpid) {
                 // copy string into data
-                strcpy(data, sharedMemoryPointer);
+                char data[MEM_SIZE];
+                strcpy(data, sharedMemoryPointer->data);
                 // display process and new data
-                printf("pid: %d data: %s", pid, data);
+                printf("read from shared memory:\n");
+                printf("\tshm: %s\n", sharedMemoryPointer->data);
+                printf("\tlpid: %d\n", sharedMemoryDataStructure->shm_lpid);
+                printf("\tpid: %d\n", pid);
+                printf("\tdata: %s", data);
             }
         }
+    } else {
+        int stats;
+        wait(&stats);
+        printf("Closing down processes\n");
+        if(shmdt (sharedMemoryPointer) < 0) {
+            perror ("Unable to detach shared memory\n");
+            sigHandler(100);
+        }
+        if(shmctl (sharedMemoryID, IPC_RMID, 0) < 0) {
+            perror ("Unable to deallocate shared memory\n");
+            sigHandler(100);
+        }
+        exit(0);
     }
-
-    // Detach memory
-    shmdt(sharedMemoryPointer);
-    shmctl(sharedMemoryID, IPC_RMID, sharedMemoryPointer);
-    return 0;
 }
 
-void sigHandler (int sigNum) {
+void sigHandler(int sigNum) {
     // graceful exit
     printf("Closing down processes\n");
-    shmdt(sharedMemoryPointer);
-    shmctl(sharedMemoryID, IPC_RMID, sharedMemoryPointer);
-    exit(0);
+    if(shmdt (sharedMemoryPointer) < 0) {
+        perror ("Unable to detach shared memory\n");
+        exit (1);
+    }
+    if(shmctl (sharedMemoryID, IPC_RMID, 0) < 0) {
+        perror ("Unable to deallocate shared memory\n");
+        exit(1);
+    }
+    // Calling code had an error
+    if (sigNum == 100) {
+        exit(1);
+    } else {
+        exit(0);
+    }
 }
