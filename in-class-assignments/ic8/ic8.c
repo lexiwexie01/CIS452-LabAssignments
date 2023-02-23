@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     sharedMemoryPointer[1] = 1;
 
     // Create semaphore
-    semaphoreID = semget(IPC_PRIVATE, 1, SEM_A|SEM_R);
+    semaphoreID = semget(IPC_PRIVATE, 1, S_IRUSR);
     if (semaphoreID < 0) {
         perror("Unable to create semaphore");
         exit(1);

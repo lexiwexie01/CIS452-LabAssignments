@@ -16,7 +16,6 @@ int main(int argc, char *argv[]) {
     int sharedMemoryID;
     pid_t pid;
     loop = atoi(argv[1]);
-
     sharedMemoryID = shmget(IPC_PRIVATE, SIZE, IPC_CREAT|S_IRUSR|S_IWUSR);
     if(sharedMemoryID < 0) {
         perror ("Unable to obtain shared memory\n");
@@ -37,8 +36,11 @@ int main(int argc, char *argv[]) {
     }
 
     if(pid == 0) { // Child
-        for(i=0; i<loop; i++) {
+        for(i=0; i < loop; i++) {
             // swap the contents of sharedMemoryPointer[0] and sharedMemoryPointer[1]
+            temp = sharedMemoryPointer[0];
+            sharedMemoryPointer[0] = sharedMemoryPointer[1];
+            sharedMemoryPointer[1] = temp;
         }
         if(shmdt(sharedMemoryPointer) < 0) {
             perror ("Unable to detach\n");
@@ -48,6 +50,9 @@ int main(int argc, char *argv[]) {
     } else {
         for (i = 0; i < loop; i++) {
             // swap the contents of sharedMemoryPointer[1] and sharedMemoryPointer[0]
+            temp = sharedMemoryPointer[1];
+            sharedMemoryPointer[1] = sharedMemoryPointer[0];
+            sharedMemoryPointer[0] = temp;
         }
     }
 
