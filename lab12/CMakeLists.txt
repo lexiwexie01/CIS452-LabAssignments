@@ -1,0 +1,8 @@
+project(labAssignmentTwelve)
+add_executable(labAssignmentTwelve labAssignmentTwelve.c)
+
+project(sampleProgramOne)
+add_executable(sampleProgramOne sample_programs/sampleProgramOne.c)
+
+project(sampleProgramTwo)
+add_executable(sampleProgramTwo sample_programs/sampleProgramTwo.c)
