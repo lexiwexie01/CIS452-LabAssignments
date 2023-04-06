@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    printf("value is: %u\n", statBuf.st_mode);
+    printf("Is Directory: %d\n", S_ISDIR(statBuf.st_mode));
 
     printf("inode value is : %llu\n", statBuf.st_ino);
 
